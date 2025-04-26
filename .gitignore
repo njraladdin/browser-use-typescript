@@ -1,0 +1,55 @@
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment
+.env
+.env.*
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Testing
+coverage/
+tmp/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Temporary files
+.tmp/
+.temp/
+.cache/
+
+# Original Python project files
+browser-use/
+
+# Playwright
+.playwright/
+test-results/
+playwright-report/
