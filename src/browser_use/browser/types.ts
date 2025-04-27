@@ -60,12 +60,44 @@ export interface BrowserStateHistory {
 }
 
 /**
+ * DOM Element representation
+ */
+export interface DOMElement {
+  tag: string;
+  text: string;
+  attributes: Record<string, string>;
+  index: number;
+}
+
+/**
  * Browser state representation
  */
 export interface BrowserState {
-  url?: string;
-  title?: string;
-  tabs?: Array<{ url: string; title: string }>;
-  selector_map: Record<number, any>; // Maps selectors to DOM elements
+  url: string;
+  title: string;
+  tabs: Array<{ id: number; url: string; title: string; is_active: boolean }>;
+  selector_map: Record<string, DOMElement>;
   screenshot?: string;
+  selected_text?: string | null;
+  last_navigation_error?: string;
+}
+
+/**
+ * Extended BrowserState with clicked element
+ */
+export interface BrowserStateWithClickedElement extends BrowserState {
+  last_clicked_element?: DOMElement | null;
+}
+
+/**
+ * Result of an agent action
+ */
+export interface ActionResult {
+  is_done?: boolean;
+  success?: boolean;
+  extracted_content?: string;
+  error?: string;
+  include_in_memory?: boolean;
+  clicked_element?: DOMElement;
+  last_clicked_element?: DOMElement;  // For backward compatibility
 } 
