@@ -28,7 +28,7 @@ describe('DOM processing', () => {
   test('should process DOM tree', async () => {
     // This test mirrors the Python test process_dom_test.py
     const context = await browser.getContext();
-    const page = await browser.getCurrentPage();
+    const page = await context.getCurrentPage();
     
     // Ensure page exists
     expect(page).not.toBeNull();
@@ -47,29 +47,54 @@ describe('DOM processing', () => {
     // Performance measurement
     console.time('DOM tree processing');
     
-    // Execute the script in the page context
-    const domTree = await (page as any).evaluate(jsCode);
-    
-    console.timeEnd('DOM tree processing');
-
-    // Ensure the output directory exists
-    const outputDir = path.resolve(__dirname, '../../tmp');
     try {
-      await fs.mkdir(outputDir, { recursive: true });
-    } catch (err) {
-      // Directory might already exist, ignore
+      // The buildDomTree.js script is an IIFE (Immediately Invoked Function Expression)
+      // that returns a function. We need to call that function with our arguments.
+      const evalFn = `
+        (() => {
+          const buildDomTree = ${jsCode};
+          return buildDomTree({
+            doHighlightElements: true,
+            focusHighlightIndex: -1,
+            viewportExpansion: 0,
+            debugMode: false
+          });
+        })()
+      `;
+      
+      // Use type assertion to workaround TypeScript limitations
+      const domTree = await (page as any).evaluate(evalFn);
+      
+      console.timeEnd('DOM tree processing');
+      console.log('DOM tree result:', domTree ? 'Received data' : 'No data');
+      if (domTree) {
+        console.log('DOM tree properties:', Object.keys(domTree));
+      }
+
+      // Ensure the output directory exists
+      const outputDir = path.resolve(__dirname, '../../tmp');
+      try {
+        await fs.mkdir(outputDir, { recursive: true });
+      } catch (err) {
+        // Directory might already exist, ignore
+      }
+
+      // Validate the result before writing
+      expect(domTree).toBeDefined();
+      
+      // Write results to file
+      const outputPath = path.resolve(outputDir, 'dom.json');
+      await fs.writeFile(outputPath, JSON.stringify(domTree, null, 2));
+
+      // Validate the structure based on the expected output format
+      expect(domTree).toHaveProperty('rootId');
+      expect(domTree).toHaveProperty('map');
+    } catch (error) {
+      console.error('Error evaluating DOM tree script:', error);
+      throw error;
     }
-
-    // Write results to file
-    const outputPath = path.resolve(outputDir, 'dom.json');
-    await fs.writeFile(outputPath, JSON.stringify(domTree, null, 2));
-
-    // Validate the result
-    expect(domTree).toBeDefined();
-    expect(domTree).toHaveProperty('children');
     
-    // Skip the prompt in automated tests, but for manual testing:
-    // Uncomment the following line for interactive testing
+    // This matches the Python test's input() call for interactive testing
     // await new Promise(resolve => process.stdin.once('data', resolve));
   }, TEST_TIMEOUT);
 }); 
