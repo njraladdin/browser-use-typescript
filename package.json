@@ -19,6 +19,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@langchain/openai": "^0.5.7",
+    "langchain": "^0.3.24",
     "playwright": "^1.52.0",
     "uuid": "^9.0.1"
   },

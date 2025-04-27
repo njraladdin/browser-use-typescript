@@ -5,6 +5,8 @@
 import type * as PlaywrightTypes from 'playwright';
 import { BrowserState } from './types';
 import { Browser } from './browser';
+import path from 'path';
+import fs from 'fs';
 
 // Declare types to avoid importing direct from playwright
 type PlaywrightBrowser = PlaywrightTypes.Browser;
@@ -254,6 +256,56 @@ export class BrowserContext {
     const tabsInfo = await Promise.all(tabPromises);
     
     // TODO: Implement screenshot functionality if needed
+    
+    // Populate the selector map with DOM elements from the page
+    try {
+      // Execute the DOM tree builder script to extract elements
+      // This is similar to what's done in process_dom.test.ts
+      const scriptPath = path.resolve(__dirname, '../dom/buildDomTree.js');
+      const jsCode = await fs.promises.readFile(scriptPath, 'utf-8');
+      
+      const evalFn = `
+        (() => {
+          const buildDomTree = ${jsCode};
+          return buildDomTree({
+            doHighlightElements: true,
+            focusHighlightIndex: -1,
+            viewportExpansion: 0,
+            debugMode: false
+          });
+        })()
+      `;
+      
+      // Check if the page has the evaluate method (Playwright typings)
+      if ('evaluate' in page) {
+        const domTree = await (page as any).evaluate(evalFn);
+        
+        // If we got a valid DOM tree, extract the selector map from it
+        if (domTree && domTree.map) {
+          this.selectorMap = {};
+          
+          // Convert the DOM tree to a selector map similar to what the Python version expects
+          for (const [id, nodeData] of Object.entries(domTree.map)) {
+            // Only add elements that are highlighted (interactive)
+            const typedNodeData = nodeData as any;
+            if (typedNodeData.highlightIndex !== undefined) {
+              this.selectorMap[typedNodeData.highlightIndex] = {
+                tagName: typedNodeData.tagName,
+                attributes: typedNodeData.attributes || {},
+                isVisible: typedNodeData.isVisible || false,
+                isInteractive: typedNodeData.isInteractive || false,
+              };
+            }
+          }
+          
+          console.log(`Populated selector map with ${Object.keys(this.selectorMap).length} elements`);
+        }
+      } else {
+        console.warn('Page does not have evaluate method. Selector map will be empty.');
+      }
+    } catch (error) {
+      console.error('Error populating selector map:', error);
+    }
     
     return {
       url,
